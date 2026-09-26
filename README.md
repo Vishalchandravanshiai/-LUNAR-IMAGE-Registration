@@ -18,6 +18,7 @@ short_description: Classical computer vision for lunar image alignment
 [![OpenCV](https://img.shields.io/badge/OpenCV-classical%20vision-5C3EE8?logo=opencv&logoColor=white)](https://opencv.org/)
 [![Gradio](https://img.shields.io/badge/UI-Gradio-FF7C00?logo=gradio&logoColor=white)](https://www.gradio.app/)
 [![Status](https://img.shields.io/badge/status-prototype-orange)](#prototype-scope)
+[![Live demo](https://img.shields.io/badge/Hugging%20Face-Try%20the%20live%20demo-yellow?logo=huggingface)](https://huggingface.co/spaces/vishalchandravanshii/lunar-image-registration)
 
 **Smart India Hackathon problem statement:** “Multi-modal, Sun angle and scale invariant image correspondence using Chandrayaan-2 optical images.”
 
@@ -29,7 +30,7 @@ short_description: Classical computer vision for lunar image alignment
 
 Upload a **reference image** and a **source image**. The app detects visual features, matches them, estimates a geometric transform, then warps the source onto the reference image’s pixel grid. Inspect feature matches, registration overlays, and alignment metrics in the Gradio interface.
 
-This repository is an exploratory classical computer-vision baseline for the SIH problem statement. It is not a finished or validated solution, and the optional NASA sample pair is from Lunar Reconnaissance Orbiter data—not Chandrayaan-2.
+This repository is an exploratory classical computer-vision baseline for the SIH problem statement. It is not a finished or validated solution, and the optional NASA sample pair is from Lunar Reconnaissance Orbiter data—not Chandrayaan-2. The hosted interface runs on Hugging Face ZeroGPU, while image registration itself runs on CPU.
 
 ## 🧭 How it works
 
