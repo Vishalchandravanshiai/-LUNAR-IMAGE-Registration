@@ -8,8 +8,6 @@ import argparse
 import subprocess
 import cv2
 
-os.environ["STREAMLIT_BROWSER_GATHER_USAGE_STATS"] = "false"
-os.environ["STREAMLIT_SERVER_HEADLESS"] = "false"
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
@@ -23,11 +21,10 @@ from core.geometric_verification import RANSACVerifier
 from core.preprocessing import ImagePreprocessor
 
 def launch_ui():
-    """Launches the Streamlit web application."""
-    ui_script = os.path.join(PROJECT_ROOT, "ui", "streamlit_app.py")
-    print(f"Launching Streamlit Web UI: {ui_script}...")
-    cmd = [sys.executable, "-m", "streamlit", "run", ui_script, "--browser.gatherUsageStats=false"]
-    subprocess.run(cmd)
+    """Launches the Gradio web application."""
+    ui_script = os.path.join(PROJECT_ROOT, "app.py")
+    print(f"Launching Gradio Web UI: {ui_script}...")
+    subprocess.run([sys.executable, ui_script], check=False)
 
 def run_cli_registration(args):
     """Executes headless image registration from CLI arguments."""

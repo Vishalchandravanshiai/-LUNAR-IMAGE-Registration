@@ -3,10 +3,11 @@ title: Lunar Image Registration
 emoji: 🌕
 colorFrom: indigo
 colorTo: blue
-sdk: docker
-app_port: 7860
+sdk: gradio
+app_file: app.py
 short_description: Classical computer vision prototype for aligning lunar images
 ---
+
 <div align="center">
 
 # 🌕 Lunar Image Registration
@@ -15,7 +16,7 @@ short_description: Classical computer vision prototype for aligning lunar images
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![OpenCV](https://img.shields.io/badge/OpenCV-classical%20vision-5C3EE8?logo=opencv&logoColor=white)](https://opencv.org/)
-[![Streamlit](https://img.shields.io/badge/UI-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![Gradio](https://img.shields.io/badge/UI-Gradio-FF7C00?logo=gradio&logoColor=white)](https://www.gradio.app/)
 [![Status](https://img.shields.io/badge/status-prototype-orange)](#prototype-scope)
 
 **Smart India Hackathon problem statement:** “Multi-modal, Sun angle and scale invariant image correspondence using Chandrayaan-2 optical images.”
@@ -26,9 +27,9 @@ short_description: Classical computer vision prototype for aligning lunar images
 
 ## ✨ What it does
 
-Give the app a **reference image** and a **source image**. It detects visual features, matches them, estimates a geometric transform, then warps the source onto the reference image’s pixel grid. The interface shows visual comparisons and alignment metrics so you can inspect the result.
+Upload a **reference image** and a **source image**. The app detects visual features, matches them, estimates a geometric transform, then warps the source onto the reference image’s pixel grid. Inspect feature matches, registration overlays, and alignment metrics in the Gradio interface.
 
-This repository is an exploratory classical computer-vision baseline for the SIH problem statement. It is not a finished or validated solution, and its current NASA sample pair is from Lunar Reconnaissance Orbiter data—not Chandrayaan-2.
+This repository is an exploratory classical computer-vision baseline for the SIH problem statement. It is not a finished or validated solution, and the optional NASA sample pair is from Lunar Reconnaissance Orbiter data—not Chandrayaan-2.
 
 ## 🧭 How it works
 
@@ -42,18 +43,16 @@ flowchart LR
     F --> G[Visual results and metrics]
 ```
 
-The pipeline supports **SIFT, ORB, and AKAZE** feature detectors; **FLANN or BFMatcher** descriptor matching; and **homography or partial affine** transforms. Optional CLAHE enhancement and Gaussian blur are available before feature detection. Homography estimation uses USAC_MAGSAC when supported by the installed OpenCV, with RANSAC fallback; affine estimation uses RANSAC.
+The pipeline supports **SIFT, ORB, and AKAZE** feature detectors; **FLANN or BFMatcher** descriptor matching; and **homography or partial affine** transforms. Optional CLAHE enhancement and Gaussian blur are available before feature detection. Homography estimation uses USAC_MAGSAC when supported by OpenCV, with RANSAC fallback; affine estimation uses RANSAC.
 
-## 🖼️ Inspect the results
+## 🖼️ Results in the app
 
-The Streamlit app can display:
-
-- Feature matches, with inliers highlighted
-- The registered (warped) source image
-- A difference heatmap, alpha blend, and red-cyan overlay
+- Feature correspondences and geometrically verified inliers
+- The registered (warped) source image and a difference heatmap
+- Red-cyan anaglyph and adjustable alpha blend
 - Match and inlier counts, inlier ratio, reprojection RMSE, transform, and runtime
 
-## 🚀 Quick start
+## 🚀 Run locally
 
 Python 3.10 or newer is recommended.
 
@@ -63,7 +62,7 @@ cd -LUNAR-IMAGE-Registration
 python -m venv .venv
 ```
 
-Activate the environment, then install dependencies and launch the app:
+Activate the environment, then install dependencies and launch the Gradio app:
 
 ```bash
 # Windows PowerShell
@@ -73,22 +72,22 @@ Activate the environment, then install dependencies and launch the app:
 # source .venv/bin/activate
 
 python -m pip install -r requirements.txt
-streamlit run ui/streamlit_app.py
+python app.py
 ```
 
-Open the local address printed by Streamlit (usually `http://localhost:8501`). You can also launch with `python app/main.py --ui`.
+Open the local URL printed in the terminal (usually `http://127.0.0.1:7860`). You can also launch the UI with `python app/main.py --ui`.
 
 ## 🌑 Try the built-in test pair
 
-In the app sidebar, select **Fetch NASA Multi-Angle Test Pair**. The app downloads a public LROC stereo anaglyph and separates its two viewing-angle channels into a test pair. The two images cover the same lunar area from different angles; this is useful for trying registration on parallax and terrain differences.
+Click **Fetch NASA Multi-Angle Test Pair** in the app. It retrieves a public LROC stereo anaglyph and separates the two viewing-angle channels into a test pair. Both images cover the same lunar area from different angles, useful for exploring registration with parallax and terrain differences.
 
-The image is fetched when requested and is not included in this repository. Source: [LROC NAC anaglyph product M1181613435_M1181606332](https://data.lroc.im-ldi.com/lroc/view_rdr/NAC_ANAGLYPH_M1181613435_M1181606332).
+The image is fetched only when requested and is not stored in the repository. Source: [LROC NAC anaglyph product M1181613435_M1181606332](https://data.lroc.im-ldi.com/lroc/view_rdr/NAC_ANAGLYPH_M1181613435_M1181606332).
 
-You can also upload your own images in PNG, JPEG, or TIFF format.
+You can also upload your own PNG, JPEG, or TIFF images.
 
 ## ⌨️ Command line
 
-For a direct registration run without the UI:
+Run the registration pipeline without opening the UI:
 
 ```bash
 python app/main.py --ref path/to/reference.png --src path/to/source.png --out outputs/
@@ -99,8 +98,10 @@ Run `python app/main.py --help` to see the available detector, matcher, transfor
 ## 🗂️ Project structure
 
 ```text
-app/          Registration pipeline and command-line entry point
-ui/           Streamlit interface
+app.py        Hugging Face Spaces entry point
+app/          Registration pipeline command-line entry point
+core/         Feature detection, matching, and image registration
+ui/           Gradio interface
 scripts/      Utility scripts
 tests/        Synthetic fixtures and unit tests
 ```
@@ -115,7 +116,7 @@ python -m unittest discover -s tests
 
 ## 🎯 Prototype scope
 
-The implementation demonstrates image-to-image feature matching and geometric alignment. It has **not** been validated against Chandrayaan-2 OHRC, TMC-2, or IIRS imagery, and it does not currently establish geospatial or map-coordinate accuracy. Classical local features can also struggle with large illumination changes, low-texture regions, strong terrain relief, or substantial differences in viewing conditions. Treat the output as an image-registration experiment and inspect the overlays and inlier metrics before drawing conclusions.
+The implementation demonstrates image-to-image feature matching and geometric alignment. It has **not** been validated against Chandrayaan-2 OHRC, TMC-2, or IIRS imagery, and it does not currently establish geospatial or map-coordinate accuracy. Classical local features can struggle with large illumination changes, low-texture regions, strong terrain relief, or substantial differences in viewing conditions. Treat the output as an image-registration experiment and inspect the overlays and inlier metrics before drawing conclusions.
 
 ## 📌 Next steps
 
