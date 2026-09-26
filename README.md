@@ -11,6 +11,12 @@ short_description: Classical computer vision for lunar image alignment
 <div align="center">
 
 # 🌕 Lunar Image Registration
+</div>
+
+> [!IMPORTANT]
+> **🚀 LIVE DEMO — [Open the Lunar Image Registration prototype →](https://huggingface.co/spaces/vishalchandravanshii/lunar-image-registration)**
+
+<div align="center">
 
 ### A computer-vision prototype for aligning lunar surface images
 
@@ -18,7 +24,6 @@ short_description: Classical computer vision for lunar image alignment
 [![OpenCV](https://img.shields.io/badge/OpenCV-classical%20vision-5C3EE8?logo=opencv&logoColor=white)](https://opencv.org/)
 [![Gradio](https://img.shields.io/badge/UI-Gradio-FF7C00?logo=gradio&logoColor=white)](https://www.gradio.app/)
 [![Status](https://img.shields.io/badge/status-prototype-orange)](#prototype-scope)
-**🚀 Live demo: [Open Lunar Image Registration](https://huggingface.co/spaces/vishalchandravanshii/lunar-image-registration)**
 
 **Smart India Hackathon problem statement:** “Multi-modal, Sun angle and scale invariant image correspondence using Chandrayaan-2 optical images.”
 
