@@ -1,3 +1,12 @@
+---
+title: Lunar Image Registration
+emoji: 🌕
+colorFrom: indigo
+colorTo: blue
+sdk: docker
+app_port: 7860
+short_description: Classical computer vision prototype for aligning lunar images
+---
 <div align="center">
 
 # 🌕 Lunar Image Registration
