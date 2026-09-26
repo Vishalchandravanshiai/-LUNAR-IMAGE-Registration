@@ -18,7 +18,7 @@ short_description: Classical computer vision for lunar image alignment
 [![OpenCV](https://img.shields.io/badge/OpenCV-classical%20vision-5C3EE8?logo=opencv&logoColor=white)](https://opencv.org/)
 [![Gradio](https://img.shields.io/badge/UI-Gradio-FF7C00?logo=gradio&logoColor=white)](https://www.gradio.app/)
 [![Status](https://img.shields.io/badge/status-prototype-orange)](#prototype-scope)
-[![Live demo](https://img.shields.io/badge/Hugging%20Face-Try%20the%20live%20demo-yellow?logo=huggingface)](https://huggingface.co/spaces/vishalchandravanshii/lunar-image-registration)
+**🚀 Live demo: [Open Lunar Image Registration](https://huggingface.co/spaces/vishalchandravanshii/lunar-image-registration)**
 
 **Smart India Hackathon problem statement:** “Multi-modal, Sun angle and scale invariant image correspondence using Chandrayaan-2 optical images.”
 
