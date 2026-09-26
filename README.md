@@ -5,7 +5,7 @@ colorFrom: indigo
 colorTo: blue
 sdk: gradio
 app_file: app.py
-short_description: Classical computer vision prototype for aligning lunar images
+short_description: Classical computer vision for lunar image alignment
 ---
 
 <div align="center">
