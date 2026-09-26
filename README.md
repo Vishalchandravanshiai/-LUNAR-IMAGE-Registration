@@ -1,187 +1,124 @@
-# Chandrayaan-2 Lunar Image Registration Prototype (SIH 2026)
+<div align="center">
 
-> **Prototype for the SIH 2026 problem statement listed on the SIH portal:** “Multi-modal, Sun angle and scale invariant image correspondence using Chandrayaan-2 optical images.”
+# 🌕 Lunar Image Registration
 
-This repository contains an early MVP baseline built to explore that problem statement. It demonstrates a classical computer-vision registration pipeline; it is a prototype, not a finished or officially validated SIH solution.
+### A computer-vision prototype for aligning lunar surface images
 
-This prototype implements a baseline MVP (minimum viable product) for automatic registration of lunar orbital imagery. It establishes a robust computer vision pipeline (Preprocessing + Feature Extraction + Feature Matching + RANSAC Outlier Rejection + Geometric Warping + RMSE Metric Evaluation) with an interactive Streamlit Web UI and a clean modular architecture designed for deep-learning upgrades.
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![OpenCV](https://img.shields.io/badge/OpenCV-classical%20vision-5C3EE8?logo=opencv&logoColor=white)](https://opencv.org/)
+[![Streamlit](https://img.shields.io/badge/UI-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![Status](https://img.shields.io/badge/status-prototype-orange)](#prototype-scope)
 
----
+**Smart India Hackathon problem statement:** “Multi-modal, Sun angle and scale invariant image correspondence using Chandrayaan-2 optical images.”
 
-## 1. What Problem This MVP Solves
-
-Orbital sensors aboard Chandrayaan-2 capture images of the lunar surface at different orbits, times, sun angles (illumination conditions), and viewing geometry. Before multi-temporal analysis, change detection, or crater mapping can occur, the images must be accurately aligned to a common spatial coordinate system.
-
-This MVP automatically finds spatial correspondences between two lunar images, rejects unreliable matches, calculates the geometric transformation (Homography or Affine), warps the moving image to align with the fixed reference image, and provides visual and quantitative metrics to verify alignment quality.
-
----
-
-## 2. Reference vs. Source Images
-
-- **Reference (Fixed) Image**: The anchor image whose spatial coordinate system, pixel grid, and resolution are preserved.
-- **Source (Moving) Image**: The target image that contains geometric distortions, rotation, scaling, or perspective tilt. It is warped and resampled to match the coordinate grid of the Reference image.
+</div>
 
 ---
 
-## 3. Pipeline Architecture
+## ✨ What it does
 
-```
-                                  [ User Input ]
-                         Reference Image   Source Image
-                                │               │
-                                ▼               ▼
-                      ┌──────────────────────────────────┐
-                      │    1. Image Preprocessing        │
-                      │ (Grayscale, CLAHE, Filtering)   │
-                      └──────────────────────────────────┘
-                                │               │
-                                ▼               ▼
-                      ┌──────────────────────────────────┐
-                      │   2. Feature Detection           │
-                      │ (SIFT / ORB / AKAZE Extractor)   │
-                      └──────────────────────────────────┘
-                                │               │
-                                ▼               ▼
-                      ┌──────────────────────────────────┐
-                      │   3. Feature Matching            │
-                      │ (FLANN / BFMatcher + Ratio Test) │
-                      └──────────────────────────────────┘
-                                        │
-                                        ▼
-                      ┌──────────────────────────────────┐
-                      │  4. Geometric Verification       │
-                      │ (RANSAC Homography / Affine)     │
-                      └──────────────────────────────────┘
-                                        │
-                                        ▼
-                      ┌──────────────────────────────────┐
-                      │   5. Image Warping & Metrics     │
-                      │ (WarpPerspective + RMSE Calc)    │
-                      └──────────────────────────────────┘
-                                        │
-                                        ▼
-                      ┌──────────────────────────────────┐
-                      │     6. UI & Visualization        │
-                      │ (Side-by-side, Blend, Anaglyph) │
-                      └──────────────────────────────────┘
+Give the app a **reference image** and a **source image**. It detects visual features, matches them, estimates a geometric transform, then warps the source onto the reference image’s pixel grid. The interface shows visual comparisons and alignment metrics so you can inspect the result.
+
+This repository is an exploratory classical computer-vision baseline for the SIH problem statement. It is not a finished or validated solution, and its current NASA sample pair is from Lunar Reconnaissance Orbiter data—not Chandrayaan-2.
+
+## 🧭 How it works
+
+```mermaid
+flowchart LR
+    A[Reference image] --> C[Detect features]
+    B[Source image] --> C
+    C --> D[Match descriptors]
+    D --> E[Reject outliers and estimate transform]
+    E --> F[Warp source to reference]
+    F --> G[Visual results and metrics]
 ```
 
----
+The pipeline supports **SIFT, ORB, and AKAZE** feature detectors; **FLANN or BFMatcher** descriptor matching; and **homography or partial affine** transforms. Optional CLAHE enhancement and Gaussian blur are available before feature detection. Homography estimation uses USAC_MAGSAC when supported by the installed OpenCV, with RANSAC fallback; affine estimation uses RANSAC.
 
-## 4. Algorithms Used in MVP
+## 🖼️ Inspect the results
 
-1. **Preprocessing**: Contrast Limited Adaptive Histogram Equalization (CLAHE) enhances crater shadows and terrain texture under contrasting solar illumination angles.
-2. **Feature Detection & Description**:
-   - **SIFT** (Scale-Invariant Feature Transform): Primary baseline invariant to scale and rotation.
-   - **ORB / AKAZE**: Binary alternatives for fast processing.
-3. **Correspondence Matching**:
-   - **FLANN** (Fast Library for Approximate Nearest Neighbors): Nearest-neighbor search in descriptor space.
-   - **Lowe's Ratio Test**: Filters ambiguous matches where distance to 1st nearest neighbor is not significantly smaller than 2nd nearest neighbor ($d_1 < 0.75 \times d_2$).
-4. **Geometric Verification & Outlier Rejection**:
-   - **RANSAC / MAGSAC**: Estimates $3 \times 3$ Homography matrix $H$ or $2 \times 3$ Affine matrix $M$ while identifying and rejecting outlier correspondences.
-   - **Degeneracy Detection**: Validates condition number, matrix determinant, and scale preservation to prevent mirror flipping or singular collapses.
-5. **Image Warping**: Bilinear perspective warping (`cv2.warpPerspective`) maps the Source image onto the Reference coordinate frame.
+The Streamlit app can display:
 
----
+- Feature matches, with inliers highlighted
+- The registered (warped) source image
+- A difference heatmap, alpha blend, and red-cyan overlay
+- Match and inlier counts, inlier ratio, reprojection RMSE, transform, and runtime
 
-## 5. Installation & Setup
+## 🚀 Quick start
 
-### Prerequisites
-- Python 3.10 or higher
-- `pip` package manager
+Python 3.10 or newer is recommended.
 
-### Installation Steps
-
-1. Clone or navigate into the project root directory:
-   ```bash
-   cd lunar_registration
-   ```
-
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
----
-
-## 6. How to Run the Application
-
-### Option A: Launch Interactive Streamlit Web UI
-
-Run the main application script:
 ```bash
-python app/main.py --ui
+git clone https://github.com/Vishalchandravanshiai/-LUNAR-IMAGE-Registration.git
+cd -LUNAR-IMAGE-Registration
+python -m venv .venv
 ```
-or directly via Streamlit:
+
+Activate the environment, then install dependencies and launch the app:
+
 ```bash
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+
+# macOS / Linux
+# source .venv/bin/activate
+
+python -m pip install -r requirements.txt
 streamlit run ui/streamlit_app.py
 ```
-Open your browser at `http://localhost:8501`.
 
-**Features in UI**:
-- Upload your own Reference & Source images (PNG, JPG, TIFF).
-- Or click **Fetch NASA Multi-Angle Test Pair** in the sidebar to load a public LROC stereo pair showing the same terrain from different viewing angles.
-- Adjust Lowe ratio, RANSAC thresholds, CLAHE enhancement toggles.
-- Inspect KPI metric cards: Total Matches, Inliers, Inlier Ratio %, Reprojection RMSE (px), Runtime (ms).
-- Visual tabs:
-  - Raw Matches vs. RANSAC Inliers.
-  - Reference, Registered Source, and Absolute Difference Heatmap.
-  - Interactive Alpha Blend slider & Red-Cyan Anaglyph toggle.
+Open the local address printed by Streamlit (usually `http://localhost:8501`). You can also launch with `python app/main.py --ui`.
 
-### Option B: Headless Command Line (CLI) Batch Run
+## 🌑 Try the built-in test pair
 
+In the app sidebar, select **Fetch NASA Multi-Angle Test Pair**. The app downloads a public LROC stereo anaglyph and separates its two viewing-angle channels into a test pair. The two images cover the same lunar area from different angles; this is useful for trying registration on parallax and terrain differences.
 
-Run registration headlessly from command line:
+The image is fetched when requested and is not included in this repository. Source: [LROC NAC anaglyph product M1181613435_M1181606332](https://data.lroc.im-ldi.com/lroc/view_rdr/NAC_ANAGLYPH_M1181613435_M1181606332).
+
+You can also upload your own images in PNG, JPEG, or TIFF format.
+
+## ⌨️ Command line
+
+For a direct registration run without the UI:
+
 ```bash
-python app/main.py --ref path/to/reference_image.png --src path/to/source_image.png --out outputs/
+python app/main.py --ref path/to/reference.png --src path/to/source.png --out outputs/
 ```
 
-The test pair is downloaded on demand from the NASA/USGS LROC archive; it is not stored in this repository.
+Run `python app/main.py --help` to see the available detector, matcher, transform, ratio, and RANSAC threshold options.
 
-Run unit tests:
+## 🗂️ Project structure
+
+```text
+app/          Registration pipeline and command-line entry point
+ui/           Streamlit interface
+scripts/      Utility scripts
+tests/        Synthetic fixtures and unit tests
+```
+
+## 🧪 Tests
+
+Run the unit tests from the repository root:
+
 ```bash
 python -m unittest discover -s tests
 ```
 
----
+## 🎯 Prototype scope
 
-## 7. Mathematical Formulations (RMSE & Inlier Ratio)
+The implementation demonstrates image-to-image feature matching and geometric alignment. It has **not** been validated against Chandrayaan-2 OHRC, TMC-2, or IIRS imagery, and it does not currently establish geospatial or map-coordinate accuracy. Classical local features can also struggle with large illumination changes, low-texture regions, strong terrain relief, or substantial differences in viewing conditions. Treat the output as an image-registration experiment and inspect the overlays and inlier metrics before drawing conclusions.
 
-### Reprojection RMSE (Root Mean Square Error)
-For each RANSAC inlier pair consisting of source point $p_s = (x_s, y_s)$ and reference point $p_r = (x_r, y_r)$:
+## 📌 Next steps
 
-1. Transform $p_s$ using estimated Homography $H$:
-   $$\begin{bmatrix} X' \\ Y' \\ Z' \end{bmatrix} = H \cdot \begin{bmatrix} x_s \\ y_s \\ 1 \end{bmatrix}$$
-2. Convert from homogeneous coordinates to 2D projected point $\hat{p}_r$:
-   $$\hat{x}_r = \frac{X'}{Z'}, \quad \hat{y}_r = \frac{Y'}{Z'}$$
-3. Euclidean reprojection error distance for inlier point $i$:
-   $$e_i = \sqrt{(\hat{x}_r^{(i)} - x_r^{(i)})^2 + (\hat{y}_r^{(i)} - y_r^{(i)})^2}$$
-4. Overall Reprojection RMSE (reported in pixels):
-   $$\text{RMSE} = \sqrt{\frac{1}{N_{\text{inliers}}} \sum_{i=1}^{N_{\text{inliers}}} e_i^2}$$
-
-### Inlier Ratio
-$$\text{Inlier Ratio} = \frac{N_{\text{inliers}}}{N_{\text{total\_good\_matches}}}$$
-where $N_{\text{total\_good\_matches}}$ is the count of matches passing Lowe's ratio test.
+- Evaluate on suitable Chandrayaan-2 image pairs
+- Measure alignment accuracy against trusted control points
+- Explore methods designed for cross-sensor, illumination, and terrain variation
+- Add geospatial metadata handling if required by the use case
 
 ---
 
-## 8. Known Limitations of the Baseline MVP
+<div align="center">
 
-1. **Extreme Sun-Angle Shift Sensitivity**: Classical SIFT gradient descriptors degrade when shadow orientation shifts by >60 degrees due to inverted light-dark crater gradients.
-2. **Terrain Homogeneity**: Featureless lunar mare regions yield sparse keypoints compared to crater-dense highlands.
-3. **Sub-pixel Precision Limit**: Pixel-grid feature detectors operate on integer keypoint coordinates before RANSAC fitting, limiting baseline accuracy to ~0.4–0.8 pixels.
-4. **Planar Homography Assumption**: Assumes locally planar terrain or small elevation relief relative to orbital altitude.
+Built as a prototype for the **Smart India Hackathon** lunar image registration problem statement.
 
----
-
-## 9. Why This Is an MVP & Roadmap for Final SIH Solution
-
-This MVP provides the fundamental verification baseline. To satisfy the complete SIH 2026 challenge requirements, the codebase is modularly structured so the following deep-learning and remote sensing upgrades can be plugged in:
-
-### Deep Learning Extensions (`core/`)
-- **Replace SIFT**: Plug in learned feature extractors (**SuperPoint**, **DISK**, **ALIKE**) that extract illumination-invariant keypoints trained on satellite imagery.
-- **Replace FLANN**: Plug in learned correspondence matchers (**LightGlue**, **SuperGlue**) that perform graph-neural-network attention over spatial context.
-- **Illumination Normalization**: Add multi-scale Phase Congruency or Shadow-Invariant Color Transforms in `core/preprocessing.py`.
-- **Spatially Uniform Match Selection**: Implement quadtree or grid-based bucketing to enforce uniform correspondence distribution across featureless terrain.
-- **Sub-pixel Refinement**: Integrate patch-based Lucas-Kanade gradient optimization or deep optical flow for sub-pixel correspondence alignment.
-- **Advanced Transformation Models**: Support Thin Plate Splines (TPS) and rational polynomial coefficients (RPC) for non-planar lunar topography.
+</div>
