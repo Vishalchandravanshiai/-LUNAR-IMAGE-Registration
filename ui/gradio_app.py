@@ -4,6 +4,7 @@ from functools import lru_cache
 import os
 import tempfile
 import urllib.request
+from io import BytesIO
 
 import cv2
 import gradio as gr
@@ -22,45 +23,38 @@ from core.registration import ImageRegistrar
 from core.export import write_match_points_csv
 from core.bridge_registration import register_via_bridge
 
-NASA_STEREO_PAIR_URL = (
-    "https://pds.lroc.im-ldi.com/data/LRO-L-LROC-5-RDR-V1.0/"
-    "LROLRC_2001/EXTRAS/ANAGLYPH/NAC_M1181613435_M1181606332/"
-    "NAC_ANAGLYPH_M1181613435_M1181606332.TIF"
+CHANDRAYAAN2_TMC2_SAMPLE_URL = (
+    "https://www.isro.gov.in/media_isro/image/archives/resized/tmc-2_large.png.webp"
 )
 
 
 @lru_cache(maxsize=1)
-def fetch_nasa_stereo_pair():
-    """Fetch the public LROC anaglyph and return its two view channels."""
+def fetch_chandrayaan2_tmc2_sample():
+    """Fetch ISRO's published Chandrayaan-2 TMC-2 lunar-surface sample image."""
     request = urllib.request.Request(
-        NASA_STEREO_PAIR_URL,
+        CHANDRAYAAN2_TMC2_SAMPLE_URL,
         headers={"User-Agent": "LunarImageRegistrationPrototype/1.0"},
     )
     with urllib.request.urlopen(request, timeout=60) as response:
-        encoded = np.frombuffer(response.read(), dtype=np.uint8)
-
-    anaglyph = cv2.imdecode(encoded, cv2.IMREAD_COLOR)
-    if anaglyph is None:
-        raise ValueError("NASA's stereo image could not be decoded.")
-
-    reference = anaglyph[:, :, 1]
-    source = anaglyph[:, :, 2]
-    max_dimension = max(reference.shape)
+        image = Image.open(BytesIO(response.read())).convert("L")
+    reference = image.copy()
+    source = image.copy()
+    max_dimension = max(image.size)
     if max_dimension > 2200:
         scale = 2200 / max_dimension
-        size = (round(reference.shape[1] * scale), round(reference.shape[0] * scale))
-        reference = cv2.resize(reference, size, interpolation=cv2.INTER_AREA)
-        source = cv2.resize(source, size, interpolation=cv2.INTER_AREA)
-
-    return Image.fromarray(reference), Image.fromarray(source)
+        size = (round(image.width * scale), round(image.height * scale))
+        reference = reference.resize(size, Image.Resampling.LANCZOS)
+        source = source.resize(size, Image.Resampling.LANCZOS)
+    return reference, source
 
 
 def load_test_pair():
     try:
-        reference, source = fetch_nasa_stereo_pair()
-        return reference.copy(), source.copy(), "NASA LROC multi-angle test pair loaded."
+        reference, source = fetch_chandrayaan2_tmc2_sample()
+        return (reference.copy(), source.copy(),
+                "Chandrayaan-2 TMC-2 sample loaded into both image fields. This is the same scene twice for a quick app check; upload overlapping source/reference images for meaningful registration.")
     except (OSError, TimeoutError, ValueError) as exc:
-        return None, None, f"Could not fetch the NASA test pair: {exc}"
+        return None, None, f"Could not fetch the Chandrayaan-2 TMC-2 sample image: {exc}"
 
 
 def _as_rgb(image):
@@ -77,7 +71,7 @@ def run_registration(reference, source, detector_name, matcher_name, model_name,
                      src_azimuth=105, src_elevation=22, *intermediate_angles):
     if reference is None or source is None:
         return (
-            "⚠️ Upload both images or load the NASA test pair first.",
+            "⚠️ Upload both images or fetch the Chandrayaan-2 TMC-2 sample first.",
             "", None, None, None, None, None, None, None, None,
         )
 
@@ -187,15 +181,16 @@ with gr.Blocks(title="Lunar Image Registration") as demo:
         "SIH problem statement: multi-modal, sun-angle and scale-invariant image correspondence."
     )
     gr.Markdown(
-        "Upload a fixed reference and a moving source image, or fetch the public NASA LROC "
-        "multi-angle test pair. This is an experimental baseline, not a validated Chandrayaan-2 solution."
+        "Upload a fixed reference and a moving source image, or fetch the official ISRO Chandrayaan-2 "
+        "TMC-2 sample image. The fetched sample fills both fields with the same scene; use a real "
+        "overlapping image pair to evaluate registration."
     )
 
     with gr.Row():
         reference_input = gr.Image(label="Reference / fixed image", type="pil")
         source_input = gr.Image(label="Source / moving image", type="pil")
     with gr.Row():
-        fetch_button = gr.Button("🌑 Fetch NASA Multi-Angle Test Pair", variant="secondary")
+        fetch_button = gr.Button("🌑 Fetch Chandrayaan-2 TMC-2 Sample", variant="secondary")
         pair_status = gr.Markdown()
     fetch_button.click(
         load_test_pair,
