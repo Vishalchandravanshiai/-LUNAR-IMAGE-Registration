@@ -57,6 +57,27 @@ The pipeline supports **SIFT, ORB, and AKAZE** feature detectors; **FLANN or BFM
 - The registered (warped) source image and a difference heatmap
 - Red-cyan anaglyph and adjustable alpha blend
 - Match and inlier counts, inlier ratio, reprojection RMSE, transform, and runtime
+- Held-out reprojection error, spatial match coverage, confidence level, and match-point CSV download
+
+## Quality gate and confidence
+
+Every estimated transform is checked with repeated 70/30 inlier holdouts and the fraction of occupied cells in a 4×4 reference-image grid. A transform is **REJECTED** below 15 inliers, when held-out RMSE cannot be computed, or above 5 px held-out RMSE. **LOW** means coverage is below 25% or RMSE exceeds 2 px. **MEDIUM** indicates fewer than 50 inliers, coverage below 50%, or RMSE above 1 px. Other accepted results are **HIGH**. These cutoffs are tunable prototype settings selected using synthetic data; confidence is not a guarantee of real-image accuracy.
+
+## Sun-angle bridging
+
+For large illumination changes, the advanced UI and CLI can register through intermediate images whose sun angles are known. Every adjacent link must pass the same quality gate; a failed or LOW-confidence link rejects the whole chain. The composed transform multiplies all link transforms, so estimation error can accumulate along longer chains. The CLI accepts `--bridge-images` and a `--sun-angles` JSON file mapping each image path to `[azimuth_deg, elevation_deg]`.
+
+## Viewpoint and scale measurements
+
+The fixed-illumination geometry sweep and measured synthetic results are in [docs/viewpoint_scale_results.md](docs/viewpoint_scale_results.md). In this controlled synthetic run, all tested rotation-only cases through 90°, scale-only cases from 1.0 to 0.25, and the selected combined cases were accepted; the 0.50 and smaller scale-only estimates received MEDIUM confidence. These measurements describe the generated crater terrain only and do not establish performance on spacecraft imagery.
+
+## Match export and spatially uniform features
+
+Use `--export-matches PATH.csv` to save matched reference/source pixel coordinates and inlier labels. The Gradio app provides the same data as a download. `--uniform-detection` runs the chosen detector independently in each 4×4 image tile, with a per-tile feature cap; this is optional and off by default. It encourages spatial coverage but does not guarantee that matched inliers will be uniformly distributed.
+
+## Validation status
+
+Quantitative results reported elsewhere in this repository are synthetic unless explicitly labeled as run on real Chandrayaan-2 data via `scripts/evaluate_real_pairs.py`. No real Chandrayaan-2 images have been used for the current quantitative results. See [data/README.md](data/README.md) for sourcing and evaluating real pairs.
 
 ## 🚀 Run locally
 
@@ -123,6 +144,8 @@ python -m unittest discover -s tests
 ## 🎯 Prototype scope
 
 The implementation demonstrates image-to-image feature matching and geometric alignment. It has **not** been validated against Chandrayaan-2 OHRC, TMC-2, or IIRS imagery, and it does not currently establish geospatial or map-coordinate accuracy. Classical local features can struggle with large illumination changes, low-texture regions, strong terrain relief, or substantial differences in viewing conditions. Treat the output as an image-registration experiment and inspect the overlays and inlier metrics before drawing conclusions.
+
+**Validation status:** Quantitative results in this repository are synthetic unless explicitly labeled as real Chandrayaan-2 evaluation by `scripts/evaluate_real_pairs.py`; no real Chandrayaan-2 images have been used to produce the current results.
 
 ## 📌 Next steps
 

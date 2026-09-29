@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from typing import Tuple, List, Optional, Dict, Any
 import cv2
 import numpy as np
+from .quality_gate import GRID
 
 class FeatureDetectionError(Exception):
     """Raised when feature detection or descriptor computation fails."""
@@ -160,3 +161,39 @@ class AKAZEFeatureDetector(BaseFeatureDetector):
         else:
             keypoints = list(keypoints)
         return keypoints, descriptors
+
+
+class GridFeatureDetector(BaseFeatureDetector):
+    """Run a base detector independently in each image tile and merge its features."""
+    def __init__(self, detector: BaseFeatureDetector, grid: int = GRID, features_per_tile: int = 500):
+        self.detector = detector
+        self.grid = grid
+        self.features_per_tile = features_per_tile
+
+    @property
+    def name(self):
+        return f"Grid-{self.detector.name}"
+
+    @property
+    def norm_type(self):
+        return self.detector.norm_type
+
+    def detect_and_compute(self, image):
+        h, w = image.shape[:2]
+        merged_kp, merged_desc = [], []
+        for row in range(self.grid):
+            y0, y1 = row * h // self.grid, (row + 1) * h // self.grid
+            for col in range(self.grid):
+                x0, x1 = col * w // self.grid, (col + 1) * w // self.grid
+                keypoints, descriptors = self.detector.detect_and_compute(image[y0:y1, x0:x1])
+                if descriptors is None or not keypoints:
+                    continue
+                order = sorted(range(len(keypoints)), key=lambda i: keypoints[i].response, reverse=True)[:self.features_per_tile]
+                for idx in order:
+                    kp = keypoints[idx]
+                    merged_kp.append(cv2.KeyPoint(kp.pt[0] + x0, kp.pt[1] + y0, kp.size, kp.angle,
+                                                  kp.response, kp.octave, kp.class_id))
+                merged_desc.append(descriptors[order])
+        if not merged_desc:
+            return [], None
+        return merged_kp, np.vstack(merged_desc)

@@ -24,6 +24,9 @@ class RegistrationMetrics:
     transformation_type: str = "Homography"
     success: bool = False
     status_message: str = ""
+    holdout_rmse_pixels: Optional[float] = None
+    match_coverage: float = 0.0
+    confidence: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)

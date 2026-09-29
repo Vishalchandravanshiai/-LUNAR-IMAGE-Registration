@@ -20,6 +20,7 @@ from .geometric_verification import (
     BaseGeometricVerifier, RANSACVerifier, VerificationError
 )
 from .metrics import RegistrationMetrics, compute_registration_metrics
+from .quality_gate import assess_registration
 
 class RegistrationError(Exception):
     """Raised when end-to-end image registration fails."""
@@ -317,6 +318,21 @@ class ImageRegistrar:
             status_message=status_msg if is_valid else f"Registration failed — {status_msg}"
         )
 
+        if is_valid and H is not None and inlier_mask is not None:
+            quality = assess_registration(
+                pts_ref, pts_src, inlier_mask, raw_ref.shape[:2],
+                getattr(self.verifier, 'transform_type', 'homography')
+            )
+            metrics.holdout_rmse_pixels = quality['holdout_rmse']
+            metrics.match_coverage = quality['coverage']
+            metrics.confidence = quality['confidence']
+            if quality['confidence'] == 'REJECTED':
+                is_valid = False
+                metrics.success = False
+                metrics.status_message = f"Registration rejected by quality gate - {quality['reason']}"
+            else:
+                metrics.status_message = f"Registration successful (confidence: {quality['confidence']}; {quality['reason']})"
+
         # Generate visualizations
         all_vis = self.draw_matches_visualization(raw_ref, kp_ref, raw_src, kp_src, matches, inlier_mask=inlier_mask, inliers_only=False)
         inlier_vis = self.draw_matches_visualization(raw_ref, kp_ref, raw_src, kp_src, matches, inlier_mask=inlier_mask, inliers_only=True)
@@ -329,7 +345,8 @@ class ImageRegistrar:
                 'inlier_matches_vis': inlier_vis,
                 'reference_image': raw_ref,
                 'source_image': raw_src,
-                'H': None
+                'H': None,
+                'pts_ref': pts_ref, 'pts_src': pts_src, 'inlier_mask': inlier_mask
             }
 
         # Step 8: Warp Source Image into Reference Image Coordinate Frame
@@ -342,8 +359,6 @@ class ImageRegistrar:
         diff_map = self.create_difference_map(raw_ref, registered_src)
         anaglyph = self.create_false_color_anaglyph(raw_ref, registered_src)
 
-        metrics.status_message = "Registration successful"
-
         return {
             'metrics': metrics,
             'registered_source': registered_src,
@@ -354,5 +369,6 @@ class ImageRegistrar:
             'anaglyph_overlay': anaglyph,
             'reference_image': raw_ref,
             'source_image': raw_src,
-            'H': H
+            'H': H,
+            'pts_ref': pts_ref, 'pts_src': pts_src, 'inlier_mask': inlier_mask
         }

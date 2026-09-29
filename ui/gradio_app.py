@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 import os
+import tempfile
 import urllib.request
 
 import cv2
@@ -18,6 +19,8 @@ from core.feature_matching import BFMatcher, FLANNMatcher
 from core.geometric_verification import RANSACVerifier
 from core.preprocessing import ImagePreprocessor
 from core.registration import ImageRegistrar
+from core.export import write_match_points_csv
+from core.bridge_registration import register_via_bridge
 
 NASA_STEREO_PAIR_URL = (
     "https://pds.lroc.im-ldi.com/data/LRO-L-LROC-5-RDR-V1.0/"
@@ -69,11 +72,13 @@ def _as_rgb(image):
 
 
 def run_registration(reference, source, detector_name, matcher_name, model_name,
-                     ratio_threshold, ransac_threshold, use_clahe, use_blur):
+                     ratio_threshold, ransac_threshold, use_clahe, use_blur,
+                     bridge_files=None, ref_azimuth=315, ref_elevation=45,
+                     src_azimuth=105, src_elevation=22, *intermediate_angles):
     if reference is None or source is None:
         return (
             "⚠️ Upload both images or load the NASA test pair first.",
-            "", None, None, None, None, None, None, None,
+            "", None, None, None, None, None, None, None, None,
         )
 
     try:
@@ -97,19 +102,44 @@ def run_registration(reference, source, detector_name, matcher_name, model_name,
             ),
             preprocessor=ImagePreprocessor(use_clahe=use_clahe, use_blur=use_blur),
         )
-        result = registrar.register(reference, source)
+        if bridge_files:
+            files = bridge_files if isinstance(bridge_files, list) else [bridge_files]
+            angles = list(intermediate_angles)
+            candidates = []
+            for index, path in enumerate(files[:6]):
+                az = angles[index * 2] if len(angles) > index * 2 and angles[index * 2] is not None else None
+                el = angles[index * 2 + 1] if len(angles) > index * 2 + 1 and angles[index * 2 + 1] is not None else None
+                if az is not None and el is not None:
+                    path = path.get("path") if isinstance(path, dict) else path
+                    candidates.append((path, (float(az), float(el))))
+            result = register_via_bridge(reference, source, (ref_azimuth, ref_elevation),
+                                         (src_azimuth, src_elevation), candidates, registrar)
+        else:
+            result = registrar.register(reference, source)
         metrics = result["metrics"]
-        status = ("✅ " if metrics.success else "⚠️ ") + metrics.status_message
+        status = ("✅ " if metrics.success and metrics.confidence not in ("LOW", "REJECTED") else "⚠️ ") + metrics.status_message
         rmse = f"{metrics.rmse_pixels:.3f} px" if metrics.success else "N/A"
+        holdout = "n/a" if metrics.holdout_rmse_pixels is None else f"{metrics.holdout_rmse_pixels:.3f} px"
         summary = (
             f"| Metric | Result |\n|:--|--:|\n"
             f"| Total matches | {metrics.total_matches} |\n"
             f"| Inlier matches | {metrics.inlier_matches} |\n"
             f"| Inlier ratio | {metrics.inlier_ratio * 100:.1f}% |\n"
             f"| Reprojection RMSE | {rmse} |\n"
+            f"| Held-out RMSE | {holdout} |\n"
+            f"| Match coverage | {metrics.match_coverage * 100:.1f}% |\n"
+            f"| Confidence | {metrics.confidence or 'n/a'} |\n"
             f"| Transform | {metrics.transformation_type} |\n"
             f"| Runtime | {metrics.execution_time_ms:.1f} ms |"
         )
+        if result.get("chain"):
+            summary += "\n\n**Sun-angle chain:** " + " → ".join(
+                "Reference" if i == 0 else ("Source" if i == len(result['chain']) - 1 else os.path.basename(str(item[0])))
+                for i, item in enumerate(result['chain'])
+            )
+            summary += "\n\n" + "\n".join(
+                f"- Link {i}: {link['inliers']} inliers · {link['confidence']}" for i, link in enumerate(result.get('links', []), 1)
+            )
 
         all_matches = result.get("all_matches_vis")
         inlier_matches = result.get("inlier_matches_vis")
@@ -124,16 +154,19 @@ def run_registration(reference, source, detector_name, matcher_name, model_name,
             anaglyph = None
             state = None
 
+        csv_path = tempfile.NamedTemporaryFile(prefix="lunar_matches_", suffix=".csv", delete=False).name
+        write_match_points_csv(result.get("pts_ref", []), result.get("pts_src", []), result.get("inlier_mask"), csv_path)
+
         return (
             status, summary,
             _as_rgb(all_matches), _as_rgb(inlier_matches), _as_rgb(registered),
             _as_rgb(result.get("difference_map")), _as_rgb(blend),
-            _as_rgb(anaglyph), state,
+            _as_rgb(anaglyph), state, csv_path,
         )
     except Exception as exc:
         return (
             f"❌ Registration error: {exc}",
-            "", None, None, None, None, None, None, None,
+            "", None, None, None, None, None, None, None, None,
         )
 
 
@@ -187,9 +220,26 @@ with gr.Blocks(title="Lunar Image Registration") as demo:
             clahe_input = gr.Checkbox(value=True, label="Enable CLAHE contrast enhancement")
             blur_input = gr.Checkbox(value=False, label="Enable Gaussian blur")
 
+    with gr.Accordion("Large sun-angle difference (advanced)", open=False):
+        bridge_files_input = gr.File(label="Intermediate images (in chain order)", file_count="multiple", type="filepath")
+        gr.Markdown("Enter sun azimuth/elevation in degrees. Intermediate angle rows correspond to uploaded files in order.")
+        with gr.Row():
+            ref_az_input = gr.Number(value=315, label="Reference azimuth")
+            ref_el_input = gr.Number(value=45, label="Reference elevation")
+            src_az_input = gr.Number(value=105, label="Source azimuth")
+            src_el_input = gr.Number(value=22, label="Source elevation")
+        intermediate_angle_inputs = []
+        for index in range(6):
+            with gr.Row():
+                intermediate_angle_inputs.extend([
+                    gr.Number(label=f"Intermediate {index + 1} azimuth"),
+                    gr.Number(label=f"Intermediate {index + 1} elevation"),
+                ])
+
     register_button = gr.Button("⚡ Register Images", variant="primary")
     status_output = gr.Markdown()
     metrics_output = gr.Markdown()
+    match_csv_output = gr.File(label="Download match points (CSV)")
     blend_state = gr.State()
 
     with gr.Tab("Matches"):
@@ -209,11 +259,14 @@ with gr.Blocks(title="Lunar Image Registration") as demo:
     registration_inputs = [
         reference_input, source_input, detector_input, matcher_input, model_input,
         ratio_input, ransac_input, clahe_input, blur_input,
+        bridge_files_input, ref_az_input, ref_el_input, src_az_input, src_el_input,
+        *intermediate_angle_inputs,
     ]
     registration_outputs = [
         status_output, metrics_output, matches_output, inliers_output,
         registered_output, difference_output, blend_output, anaglyph_output,
         blend_state,
+        match_csv_output,
     ]
     register_button.click(run_registration, inputs=registration_inputs, outputs=registration_outputs)
     alpha_input.change(update_blend, inputs=[blend_state, alpha_input], outputs=blend_output)

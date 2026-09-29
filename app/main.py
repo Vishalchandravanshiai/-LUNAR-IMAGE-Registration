@@ -15,10 +15,13 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from core.registration import ImageRegistrar
-from core.feature_detection import SIFTFeatureDetector, ORBFeatureDetector, AKAZEFeatureDetector
+from core.feature_detection import SIFTFeatureDetector, ORBFeatureDetector, AKAZEFeatureDetector, GridFeatureDetector
 from core.feature_matching import FLANNMatcher, BFMatcher
 from core.geometric_verification import RANSACVerifier
 from core.preprocessing import ImagePreprocessor
+from core.bridge_registration import register_via_bridge
+from core.export import write_match_points_csv
+import json
 
 def launch_ui():
     """Launches the Gradio web application."""
@@ -49,6 +52,8 @@ def run_cli_registration(args):
         det = ORBFeatureDetector()
     else:
         det = AKAZEFeatureDetector()
+    if args.uniform_detection:
+        det = GridFeatureDetector(det)
 
     if args.matcher.upper() == "FLANN":
         mat = FLANNMatcher(ratio_threshold=args.ratio)
@@ -60,8 +65,22 @@ def run_cli_registration(args):
     registrar = ImageRegistrar(detector=det, matcher=mat, verifier=ver, preprocessor=preproc)
 
     # Run registration
-    res = registrar.register(ref_path, src_path)
+    if args.bridge_images and args.sun_angles:
+        with open(args.sun_angles, encoding="utf-8") as handle:
+            sun_map = json.load(handle)
+        candidates = [(path, sun_map[path]) for path in args.bridge_images]
+        res = register_via_bridge(ref_path, src_path, sun_map[ref_path], sun_map[src_path], candidates, registrar)
+        print(f"Registration mode: {res.get('mode', 'direct')}")
+        if res.get('chain'):
+            print("Sun-angle chain: " + " -> ".join(str(item[0] or 'reference') for item in res['chain']))
+            for i, link in enumerate(res.get('links', []), 1):
+                print(f"  Link {i}: {link['inliers']} inliers, {link['confidence']}")
+    else:
+        res = registrar.register(ref_path, src_path)
     metrics = res['metrics']
+    if args.export_matches:
+        write_match_points_csv(res.get('pts_ref', []), res.get('pts_src', []), res.get('inlier_mask'), args.export_matches)
+        print(f"Match point CSV:    {args.export_matches}")
 
     print("\n--- REGISTRATION RESULTS ---")
     print(f"Status:             {metrics.status_message}")
@@ -72,6 +91,10 @@ def run_cli_registration(args):
     print(f"Inlier Matches:     {metrics.inlier_matches}")
     print(f"Inlier Ratio:       {metrics.inlier_ratio * 100:.2f}%")
     print(f"Reprojection RMSE:  {metrics.rmse_pixels:.4f} pixels")
+    holdout = "n/a" if metrics.holdout_rmse_pixels is None else f"{metrics.holdout_rmse_pixels:.4f} pixels"
+    print(f"Held-out RMSE:      {holdout}")
+    print(f"Match Coverage:     {metrics.match_coverage * 100:.1f}%")
+    print(f"Confidence:         {metrics.confidence or 'n/a'}")
     print(f"Processing Time:    {metrics.execution_time_ms:.2f} ms")
 
     if metrics.success and res['registered_source'] is not None:
@@ -108,6 +131,10 @@ def main():
     parser.add_argument("--ratio", type=float, default=0.75, help="Lowe ratio threshold")
     parser.add_argument("--ransac-thresh", type=float, default=3.0, help="RANSAC reprojection threshold in pixels")
     parser.add_argument("--no-clahe", action="store_true", help="Disable CLAHE preprocessing")
+    parser.add_argument("--bridge-images", nargs="*", default=[], metavar="IMG", help="Intermediate images for sun-angle bridging")
+    parser.add_argument("--sun-angles", type=str, help="JSON mapping image paths to [azimuth_deg, elevation_deg]")
+    parser.add_argument("--export-matches", type=str, metavar="PATH.csv", help="Export matched points and inlier labels to CSV")
+    parser.add_argument("--uniform-detection", action="store_true", help="Detect features separately in a 4x4 image grid")
 
     args = parser.parse_args()
 
