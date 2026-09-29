@@ -35,7 +35,7 @@ short_description: Classical computer vision for lunar image alignment
 
 Upload a **reference image** and a **source image**. The app detects visual features, matches them, estimates a geometric transform, then warps the source onto the reference image’s pixel grid. Inspect feature matches, registration overlays, and alignment metrics in the Gradio interface.
 
-This repository is an exploratory classical computer-vision baseline for the SIH problem statement. It is not a finished or validated solution. The app's fetch button loads an official ISRO-published Chandrayaan-2 TMC-2 sample image; it is a sample scene, not a pre-paired validation dataset. The hosted interface runs on Hugging Face ZeroGPU, while image registration itself runs on CPU.
+This repository is an exploratory classical computer-vision baseline for the SIH problem statement. It is not a finished or broadly validated solution. The app's fetch button loads an official ISRO-published Chandrayaan-2 TMC-2 before/after pair. The hosted interface runs on Hugging Face ZeroGPU, while image registration itself runs on CPU.
 
 ## 🧭 How it works
 
@@ -104,11 +104,11 @@ python app.py
 
 Open the local URL printed in the terminal (usually `http://127.0.0.1:7860`). You can also launch the UI with `python app/main.py --ui`.
 
-## 🌑 Fetch a Chandrayaan-2 sample image
+## 🌑 Fetch a difficult Chandrayaan-2 pair
 
-Click **Fetch Chandrayaan-2 TMC-2 Sample** to retrieve the official [ISRO TMC-2 lunar-surface image](https://www.isro.gov.in/Images%20of%20Lunar%20Surface.html). The same real sample scene is loaded into both image fields for a quick app check; it is not an overlapping pair, so it does not demonstrate registration accuracy. For meaningful registration, use overlapping reference/source images obtained from the [PRADAN Chandrayaan-2 archive](https://pradan.issdc.gov.in/ch2/) and follow its current access and use terms.
+Click **Fetch Chandrayaan-2 TMC-2 Hard Pair** to retrieve ISRO's [TMC-2 before/after comparison](https://www.isro.gov.in/TMC_2.html) and split its two side-by-side panels into the reference and source fields. They show the same lunar region before and after the 4 March 2022 rocket-booster impact, including the new small crater; they are different images with substantial shared terrain. One pair is a useful prototype test, not broad validation. For more data, use the [PRADAN Chandrayaan-2 archive](https://pradan.issdc.gov.in/ch2/) and follow its current access and use terms.
 
-The sample is fetched only when requested and is not stored in the repository. You can also upload your own PNG, JPEG, or TIFF images.
+The pair is fetched only when requested and is not stored in the repository. You can also upload your own PNG, JPEG, or TIFF images.
 
 You can also upload your own PNG, JPEG, or TIFF images.
 
