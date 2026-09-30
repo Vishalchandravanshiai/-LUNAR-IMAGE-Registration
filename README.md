@@ -35,7 +35,7 @@ short_description: Classical computer vision for lunar image alignment
 
 Upload a **reference image** and a **source image**. The app detects visual features, matches them, estimates a geometric transform, then warps the source onto the reference image’s pixel grid. Inspect feature matches, registration overlays, and alignment metrics in the Gradio interface.
 
-This repository is an exploratory classical computer-vision baseline for the SIH problem statement. It is not a finished or broadly validated solution. The app's fetch button loads an official ISRO-published Chandrayaan-2 TMC-2 before/after pair. The hosted interface runs on Hugging Face ZeroGPU, while image registration itself runs on CPU.
+This repository is an exploratory classical computer-vision baseline for the SIH problem statement. It is not a finished or validated solution, and the optional NASA sample pair is from Lunar Reconnaissance Orbiter data—not Chandrayaan-2. The hosted interface runs on Hugging Face ZeroGPU, while image registration itself runs on CPU.
 
 ## 🧭 How it works
 
@@ -104,11 +104,13 @@ python app.py
 
 Open the local URL printed in the terminal (usually `http://127.0.0.1:7860`). You can also launch the UI with `python app/main.py --ui`.
 
-## 🌑 Fetch a difficult Chandrayaan-2 pair
+## 🌑 Try the built-in test pair
 
-Click **Fetch Chandrayaan-2 TMC-2 Hard Pair** to retrieve ISRO's [TMC-2 before/after comparison](https://www.isro.gov.in/TMC_2.html) and split its two side-by-side panels into the reference and source fields. They show the same lunar region before and after the 4 March 2022 rocket-booster impact, including the new small crater; they are different images with substantial shared terrain. One pair is a useful prototype test, not broad validation. For more data, use the [PRADAN Chandrayaan-2 archive](https://pradan.issdc.gov.in/ch2/) and follow its current access and use terms.
+Click **Fetch NASA Multi-Angle Test Pair** in the app. It retrieves a public LROC stereo anaglyph and separates the two viewing-angle channels into a test pair. Both images cover the same lunar area from different angles, useful for exploring registration with parallax and terrain differences.
 
-The pair is fetched only when requested and is not stored in the repository. You can also upload your own PNG, JPEG, or TIFF images.
+The image is fetched only when requested and is not stored in the repository. Source: [LROC NAC anaglyph product M1181613435_M1181606332](https://data.lroc.im-ldi.com/lroc/view_rdr/NAC_ANAGLYPH_M1181613435_M1181606332).
+
+You can also upload your own PNG, JPEG, or TIFF images.
 
 You can also upload your own PNG, JPEG, or TIFF images.
 
