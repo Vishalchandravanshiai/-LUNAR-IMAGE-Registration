@@ -51,6 +51,10 @@ flowchart LR
 
 The pipeline supports **SIFT, ORB, and AKAZE** feature detectors; **FLANN or BFMatcher** descriptor matching; and **homography or partial affine** transforms. Optional CLAHE enhancement and Gaussian blur are available before feature detection. Homography estimation uses USAC_MAGSAC when supported by OpenCV, with RANSAC fallback; affine estimation uses RANSAC.
 
+## 🏗️ Project architecture
+
+![Lunar Image Registration project architecture](docs/architecture_diagram.png)
+
 ## 🖼️ Results in the app
 
 - Feature correspondences and geometrically verified inliers
@@ -109,8 +113,6 @@ Open the local URL printed in the terminal (usually `http://127.0.0.1:7860`). Yo
 Click **Fetch NASA Multi-Angle Test Pair** in the app. It retrieves a public LROC stereo anaglyph and separates the two viewing-angle channels into a test pair. Both images cover the same lunar area from different angles, useful for exploring registration with parallax and terrain differences.
 
 The image is fetched only when requested and is not stored in the repository. Source: [LROC NAC anaglyph product M1181613435_M1181606332](https://data.lroc.im-ldi.com/lroc/view_rdr/NAC_ANAGLYPH_M1181613435_M1181606332).
-
-You can also upload your own PNG, JPEG, or TIFF images.
 
 You can also upload your own PNG, JPEG, or TIFF images.
 
